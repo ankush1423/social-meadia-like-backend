@@ -33,21 +33,9 @@ const postSchema = new mongoose.Schema({
   ],
   comments: [
     {
-      user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true,
-      },
-      content: {
-        type: String,
-        required: true,
-        maxlength: 200, // Optional limit for comment length
-      },
-      createdAt: {
-        type: Date,
-        default: Date.now,
-      },
-    },
+       type : mongoose.Schema.Types.ObjectId,
+       ref : 'Comment'
+    }
   ],
   shares: [
     {
