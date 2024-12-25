@@ -5,6 +5,7 @@ import {User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudnary.js"
 import {verifyJWT} from "../middlewares/auth.middleware.js"
 
+
 const generateAccessRefreshToken = async function(userId){
       try 
       {
@@ -74,19 +75,19 @@ export const userRegister = asyncHandler(async(req,res) => {
 export const loginUser = asyncHandler(async(req,res) => {
      const {username , email , password} = req.body
      
-     if(!(username || email) || !password)
+     if(!username || !email || !password)
      {
         throw new ApiError(400,"both credentials are required")
      }
 
-     const user = await User.findOne({$or : [{username},{email}]})
+     const user = await User.findOne({$and : [{username},{email}]})
 
      if(!user)
      {
         throw new ApiError(400,"error while getting the user")
      }
 
-     const isPasswordCorrect = user.isPasswordCorrect(password)
+     const isPasswordCorrect = await user.isPasswordCorrect(password)
 
      if(!isPasswordCorrect)
      {
@@ -113,3 +114,225 @@ export const loginUser = asyncHandler(async(req,res) => {
                 )
             )
 })
+
+export const logoutUser = asyncHandler(async(req,res) => {
+      await User.findByIdAndUpdate(
+          req.user?._id,
+          {
+             $unset : {
+               refreshtoken : 1
+             }
+          },
+          {
+             new : true 
+          }
+      )
+      
+      const options = {
+          httpOnly : true,
+          secure : true
+      }
+
+      return res 
+             .status(200)
+             .clearCookie("accesstoken",options)
+             .clearCookie("refreshtoken",options)
+             .json(
+                new ApiResponse(
+                   {},
+                   "user loggedOut SuccessFully"
+                )
+             )
+})
+
+export const refreshAccessToken = asyncHandler(async(req,res) => {
+       const incomingRefreshToken = req.cookies?.refreshtoken || req.body.refreshToken
+
+       if(!incomingRefreshToken)
+       {
+           throw new ApiError(400,"unauthraised request")
+       }
+
+       try 
+       {
+           const decodedToken = await jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET)
+
+           const user = await User.findById(decodedToken._id)
+
+           if(!user)
+           {
+               throw new ApiError(400,"invalis token")
+           }
+
+           if(incomingRefreshToken !== user?.refreshtoken)
+           {
+               throw new ApiError(400,"token already used")
+           }
+
+           const {accesstoken , refreshtoken} = await generateAccessRefreshToken(user._id)
+
+           const options = {
+               httpOnly : true,
+               secure : true
+           }
+
+           return res
+                  .status(200)
+                  .cookie("accesstoken",accesstoken,options)
+                  .cookie("refreshtoken",refreshtoken,options)
+                  .json(
+                      new ApiResponse(
+                        {},
+                        "refresh access token successFully"
+                      )
+                  )
+       } 
+       catch (error) 
+       {
+          console.log("error while refresh the access token ",error)
+       }
+})
+
+export const changeCurrentPassword = asyncHandler(async(req,res) => {
+        const {oldPassword , newPassword} = req.body
+
+        if(!oldPassword || !newPassword)
+        {
+            throw new ApiError(400,"both feilds are mandatary")
+        }
+         
+        const user = await User.findById(req.user?._id)
+        if(!user)
+        {
+            throw new ApiError(400,"error while getting the user")
+        }
+        const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+        if(!isPasswordCorrect)
+        {
+           throw new ApiError(400,"please provide the coorect password")
+        }
+
+        user.password = newPassword
+        await user.save({validateBeforeSave : false})
+
+        return res
+               .status(200)
+               .json(
+                   new ApiResponse(
+                       {},
+                       "password updated successfully"
+                   )
+               )
+})
+
+export const getCurentUser = asyncHandler(async(req,res) => {
+      return res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    req.user,
+                    "user find successfully"
+                )
+            )
+})
+
+export const updateAccountDetails = asyncHandler(async(req,res) => {
+     const {fullname , email ,bio} = req.body
+
+     if(!fullname || !email || !bio)
+     {
+        throw new ApiError(400,"both feilds are mandatory")
+     }
+
+     const updatedUser = await User.findByIdAndUpdate(
+          req.user._id,
+          {
+             $set : {
+                fullname,
+                email,
+                bio
+             }
+          },
+          {
+             new : true
+          }
+     ).select("-password -refreshtoken")
+
+     if(!updatedUser)
+     {
+        throw new ApiError(400,"error while updating the detail")
+     }
+
+     return res
+            .status(200)
+            .json(
+               new ApiResponse(
+                   updatedUser,
+                   "userupdated SuccessFully"
+               )
+            )
+})
+
+export const updateProfilePicture = asyncHandler(async(req,res) => {
+     const profilePath = req.file?.path
+
+     if(!profilePath)
+     {
+        throw new ApiError(400,"error while getting the proflePath")
+     }
+
+     const profileRefrence = await uploadOnCloudinary(profilePath)
+      
+     if(!profileRefrence)
+     {
+        throw new ApiError(400,"error while getting profile Refrence")
+     }
+     
+     const updatedUser = await User.findByIdAndUpdate(
+          req.user?._id,
+          {
+             $set : {
+               profilePicture : profileRefrence?.url
+             }
+          },
+          {
+             new : true
+          }
+     ).select("-password -refreshtoken")
+
+     if(!updatedUser)
+     {
+        throw new ApiError(400,"error while update the profile Picture")
+     }
+
+     return res
+            .status(200)
+            .json(
+               new ApiResponse(
+                  updatedUser,
+                  "user profile picture updated successFully"
+               )
+            )
+})
+
+export const getUserChannelProfile = asyncHandler(async(req,res) => {
+     const {username} = req.body
+
+     if(!username?.trim())
+     {
+         throw new ApiError(400,"error while getting the username")
+     }
+
+     const user = await User.aggregate([
+         {
+            $match : {
+                username : username.toLowerCase()
+            }
+         },
+         {
+
+         }
+     ])
+})
+
+

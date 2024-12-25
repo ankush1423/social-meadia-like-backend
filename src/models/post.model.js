@@ -1,4 +1,5 @@
 import mongoose from "mongoose"
+import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 const postSchema = new mongoose.Schema({
   author: {
@@ -77,5 +78,7 @@ const postSchema = new mongoose.Schema({
     default: 'public',
   },
 },{timestamps : true});
+
+postSchema.plugin(mongooseAggregatePaginate)
 
 export const Post = mongoose.model("Post",postSchema)
