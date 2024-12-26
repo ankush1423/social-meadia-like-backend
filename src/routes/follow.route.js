@@ -3,7 +3,8 @@ import {verifyJWT} from "../middlewares/auth.middleware.js"
 import {
           followUser,
           unfollowUser,
-          getFollowers
+          getFollowers,
+          getFollowing,
       } from "../controllers/follow.controller.js"
 
 
@@ -16,5 +17,7 @@ router.route("/user-follow/:userId").post(followUser)
 router.route("/user-unfollow/:userId").post(unfollowUser)
 
 router.route("/user-followers/:userId").get(getFollowers)
+
+router.route("/user-following/:userId").get(getFollowing)
 
 export default router;

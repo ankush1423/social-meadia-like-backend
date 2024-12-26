@@ -5,6 +5,7 @@ import {Follow} from "../models/follow.model.js"
 import mongoose from "mongoose"
 import { User } from "../models/user.model.js"
 
+
 export const followUser = asyncHandler(async(req,res) => {
       const {userId} = req.params
 
@@ -121,7 +122,14 @@ export const getFollowing = asyncHandler(async(req,res) => {
          throw new ApiError(400,"error while getting the following")
       }
 
-      
+      return res
+             .status(200)
+             .json(
+                new ApiResponse(
+                     following,
+                     "user following find successFully"
+                )
+             )
 })
 
 
