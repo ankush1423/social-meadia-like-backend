@@ -336,3 +336,7 @@ export const getUserChannelProfile = asyncHandler(async(req,res) => {
 })
 
 
+// task to complete 
+// getFollowers: Fetch the list of users who are following a specific user.
+// getFollowing: Fetch the list of users that a specific user is following.
+
