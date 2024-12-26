@@ -330,9 +330,55 @@ export const getUserChannelProfile = asyncHandler(async(req,res) => {
             }
          },
          {
-
+            $lookup : {
+                from : "follows",
+                localField : "_id",
+                foreignField : "following",
+                as : "followers",
+            },
+         },
+         {
+            $lookup : {
+                from : "follows",
+                localField : "_id",
+                foreignField : "follower",
+                as : "following",
+            }
+         },
+         {
+            $lookup : {
+               from : "posts",
+               localField : "_id",
+               foreignField : "author",
+               as : "posts"
+            }
+         },
+         {
+            $project : {
+                username : 1,
+                email : 1,
+                fullname : 1,
+                followers : 1,
+                following : 1,
+                posts : 1,
+                isVerified : 1
+            }
          }
      ])
+
+     if(!user)
+     {
+        throw new ApiError(400,"error while finding the user")
+     }
+
+     return res 
+            .status(200)
+            .json(
+               new ApiResponse(
+                  user,
+                  "user profile found successFully"
+               )
+            )
 })
 
 
