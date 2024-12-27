@@ -338,11 +338,25 @@ export const getUserChannelProfile = asyncHandler(async(req,res) => {
             },
          },
          {
+           addFields : {
+             followers : {
+                $size : "$followers"
+             }
+           }
+         },
+         {
             $lookup : {
                 from : "follows",
                 localField : "_id",
                 foreignField : "follower",
                 as : "following",
+            }
+         },
+         {
+            $addFields : {
+               following : {
+                  $size : "$following"
+               }
             }
          },
          {
